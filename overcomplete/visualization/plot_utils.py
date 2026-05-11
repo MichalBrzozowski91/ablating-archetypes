@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import torch
 from PIL import Image
-import cv2
+from skimage.transform import resize as sk_resize
 
 from ..data import to_npf32
 
@@ -35,9 +35,9 @@ def interpolate_torch(img, target=(224, 224), mode='bicubic'):
     return F.interpolate(img, target, mode=mode, antialias=True)
 
 
-def interpolate_cv2(img, target=(224, 224), interpolation=cv2.INTER_CUBIC):
+def interpolate_cv2(img, target=(224, 224), interpolation=None):
     """
-    Robust interpolate an image to a target size using OpenCV.
+    Robust interpolate an image to a target size.
     Handle numpy, torch, PIL, channels first or last.
 
     Parameters
@@ -46,9 +46,7 @@ def interpolate_cv2(img, target=(224, 224), interpolation=cv2.INTER_CUBIC):
         Input image array. Can be 2D (single channel) or 3D (multiple channels),
         channels can be in the first or last dimension.
     target : tuple of int, optional
-        Target size (height, width), by default (224, 224).
-    interpolation : int, optional
-        Interpolation method, see OpenCV documentation for details, by default cv2.INTER_CUBIC.
+        Target size (width, height), by default (224, 224).
 
     Returns
     -------
@@ -58,7 +56,10 @@ def interpolate_cv2(img, target=(224, 224), interpolation=cv2.INTER_CUBIC):
     img = to_npf32(img)
     img = np_channel_last(img)
     assert img.ndim in (2, 3), f"Expected 2 or 3 dimensions, but got {img.shape}"
-    return cv2.resize(img, target, interpolation=interpolation)
+    # target is (width, height); sk_resize expects (height, width, ...)
+    w, h = target
+    out_shape = (h, w) if img.ndim == 2 else (h, w, img.shape[2])
+    return sk_resize(img, out_shape, anti_aliasing=True).astype(np.float32)
 
 
 def get_image_dimensions(img):
@@ -95,10 +96,6 @@ def get_image_dimensions(img):
                 return shape[2], shape[1]
             # then it's channel last
             return shape[1], shape[0]
-
-    # cv2 case
-    if isinstance(img, cv2.Mat):
-        return img.shape[1], img.shape[0]
 
     raise TypeError("Unsupported image type")
 
