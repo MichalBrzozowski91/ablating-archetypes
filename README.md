@@ -24,7 +24,7 @@ The notebook depends on the [`overcomplete`](https://github.com/KempnerInstitute
 ## Setup
 
 ```bash
-pip install -e .
+uv sync
 ```
 
 Then open `Archetypal_SAE_ablation.ipynb` and download the rabbit dataset by running the `wget` cell.
